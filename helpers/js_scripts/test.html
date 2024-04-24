@@ -1,0 +1,165 @@
+<!-- index.html -->
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Diagram</title>
+    <!-- Include D3 library -->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body id="body">
+
+    <script>
+        const dimensions = { width: 600, height: 600 };
+        const innerRadius = Math.min(dimensions.width, dimensions.height) * 0.5 - 40;
+        const outerRadius = innerRadius + 10;
+
+        // Your JavaScript code
+        const chord = d3
+        .chord()
+        .padAngle(5 / innerRadius)
+        .sortSubgroups(d3.descending);
+
+        const arc = d3.arc()
+        .innerRadius(innerRadius)
+        .outerRadius(outerRadius);
+
+        const ribbon = d3
+        .ribbon()
+        .radius(innerRadius - 1)
+        .padAngle(1 / innerRadius);
+
+        const data = [
+        [11975,  5871, 8916, 2868],
+        [ 1951, 10048, 2060, 6171],
+        [ 8010, 16145, 8090, 8045],
+        [ 1013,   990,  940, 6907]
+        ];
+        const regions = ["black", "blond", "brown", "red"];
+
+
+        const colorScale = d3.scaleOrdinal()
+        .domain(regions) // Specify the domain of your data (regions)
+        .range(d3.schemeCategory10); // You can use a different color scheme if needed
+
+
+        const shapedData = Object.assign(
+        data.map((r) => Object.entries(r).map((v) => +v[1])),
+        {
+            names: regions,
+            colors: colorScale.domain()
+        }
+        );
+
+        const chords = chord(shapedData);
+
+        // Creating a container div and appending the generated SVG
+        const container = document.createElement('div');
+        container.setAttribute("id", "plot");
+        document.body.appendChild(container);
+
+        container.appendChild(createChordDiagram());
+
+        function createChordDiagram() {
+        const svg = d3
+            .create("svg")
+            .attr("height", dimensions.height)
+            .attr("width", dimensions.width)
+            .attr("id", "canvas")    
+            .attr(
+            "transform",
+            `translate(${dimensions.width / 2},${dimensions.height / 2})`
+            )
+            .attr("overflow", "visible");
+
+        // Add title
+        svg
+            .append("text")
+            .text("Overlap")
+            .attr("x", -dimensions.width / 2 + 5)
+            .attr("y", -dimensions.height / 2 + 40)
+            .attr("font-size", "31.25");
+
+        // Draw the shapes
+        const group = svg
+            .append("g")
+            .attr("font-size", 10)
+            .attr("font-family", "sans-serif")
+            .selectAll("g")
+            .data(chords.groups)
+            .join("g");
+
+        group
+            .append("path")
+            .attr("fill", (d) => colorScale(regions[d.index]))
+            .text((d) => regions[d.index])
+            .attr("d", arc);
+
+        svg
+            .append("g")
+            .attr("fill-opacity", 0.8)
+            .selectAll("path")
+            .data(chords)
+            .join("path")
+            .style("mix-blend-mode", "multiply")
+            .attr("fill", (d) => colorScale(regions[d.source.index]))
+            .attr("stroke-width", ".2")
+            .attr("d", ribbon);
+
+        // Add legend
+        svg
+            .append("g")
+            .selectAll("line")
+            .data(regions)
+            .join("line")
+            .attr("x1", dimensions.width * 0.6)
+            .attr("x2", dimensions.width * 0.6 + 10)
+            .attr("y1", (d, dNdx) => -dimensions.height / 2 + 85 + 20 * dNdx)
+            .attr("y2", (d, dNdx) => -dimensions.height / 2 + 85 + 20 * dNdx)
+            .attr("stroke", (d) => colorScale(d))
+            .attr("stroke-width", "5px");
+
+        svg
+            .append("g")
+            .selectAll("text")
+            .data(regions)
+            .join("text")
+            .text((d) => d)
+            .attr("x", dimensions.width * 0.6 + 12)
+            .attr("y", (d, dNdx) => -dimensions.height / 2 + 85 + 20 * dNdx)
+            .attr("dy", "2.5px")
+            .attr("font-size", "12px")
+            .attr("font-family", "sans-serif");
+
+        return svg.node();
+        }
+    </script>
+    <script>
+            // var opt = {
+            //     filename:     'myfile.pdf',
+            //     image:        { type: 'svg', quality: 0.98 },
+            //     html2canvas:  { dpi: 192, letterRendering: true },
+            //     jsPDF: {
+            //                 orientation: 'portrait',
+            //                 unit: 'cm',
+            //                 format: [60, 60]
+            //             }
+            // };
+            // html2pdf().from(document.body).save();
+            
+            canvg(canvas, svg);
+            let imgData = canvas.toDataURL('image/png');
+
+            var doc = new jsPDF('l', 'pt', [1020, 768]);
+            doc.addImage(imgData, 'PNG', 0, 0, 1020, 768);
+            doc.save('svg-png-chart.pdf');
+
+   </script>
+
+</body>
+</html>
+
